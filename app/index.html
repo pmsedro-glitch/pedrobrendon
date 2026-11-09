@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Magnific Pedro</title>
+  <meta name="description" content="Upscaler Magnific per iPad">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Magnific">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Magnific <span>Pedro</span></h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-view="studio" role="tab">Studio</button>
+      <button class="tab" data-view="history" role="tab">Cronologia</button>
+    </nav>
+    <button id="openSettings" class="icon-btn" aria-label="Impostazioni">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4L10.7 6a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- STUDIO -->
+    <section id="view-studio" class="view active">
+      <div class="studio">
+        <div class="stage">
+          <label id="dropzone" class="dropzone">
+            <input id="fileInput" type="file" accept="image/*" hidden>
+            <div class="dz-inner">
+              <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" d="M19 5v14H5V5h14m0-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-4.9 8.8-3 3.9-2.1-2.6L6 17h12z"/></svg>
+              <strong>Tocca per scegliere un'immagine</strong>
+              <span>Da Foto, File o Fotocamera · oppure trascinala qui</span>
+            </div>
+          </label>
+
+          <div id="preview" class="preview" hidden>
+            <div id="compare" class="compare">
+              <img id="imgBefore" alt="Originale">
+              <div id="afterWrap" class="after-wrap" hidden><img id="imgAfter" alt="Risultato"></div>
+              <div id="divider" class="divider" hidden></div>
+              <span class="tag tag-l" id="tagBefore">Originale</span>
+              <span class="tag tag-r" id="tagAfter" hidden>Magnific</span>
+            </div>
+            <div class="preview-bar">
+              <span id="imgInfo" class="muted"></span>
+              <div class="spacer"></div>
+              <button id="changeImage" class="btn ghost">Cambia</button>
+              <button id="shareResult" class="btn ghost" hidden>Salva / Condividi</button>
+              <a id="openResult" class="btn ghost" target="_blank" rel="noopener" hidden>Apri</a>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="segmented" role="radiogroup" aria-label="Modalità">
+            <button class="seg active" data-mode="creative">Creative</button>
+            <button class="seg" data-mode="precision">Precision</button>
+          </div>
+
+          <!-- CREATIVE -->
+          <div id="opts-creative" class="opts">
+            <div class="field">
+              <label>Fattore di scala</label>
+              <div class="chips" id="scaleChips">
+                <button class="chip active" data-v="2x">2x</button>
+                <button class="chip" data-v="4x">4x</button>
+                <button class="chip" data-v="8x">8x</button>
+                <button class="chip" data-v="16x">16x</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="optimizedFor">Ottimizzato per</label>
+              <select id="optimizedFor">
+                <option value="standard">Standard</option>
+                <option value="soft_portraits">Ritratti morbidi</option>
+                <option value="hard_portraits">Ritratti nitidi</option>
+                <option value="art_n_illustration">Arte e illustrazione</option>
+                <option value="videogame_assets">Asset videogioco</option>
+                <option value="nature_n_landscapes">Natura e paesaggi</option>
+                <option value="films_n_photography">Film e fotografia</option>
+                <option value="3d_renders">Render 3D</option>
+                <option value="science_fiction_n_horror">Fantascienza e horror</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="engine">Motore</label>
+              <select id="engine">
+                <option value="automatic">Automatico</option>
+                <option value="magnific_illusio">Illusio</option>
+                <option value="magnific_sharpy">Sharpy</option>
+                <option value="magnific_sparkle">Sparkle</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="prompt">Prompt (facoltativo)</label>
+              <textarea id="prompt" rows="3" placeholder="Descrivi l'immagine per guidare i dettagli…"></textarea>
+            </div>
+            <div class="slider" data-key="creativity" data-min="-10" data-max="10" data-def="0"><label>Creatività</label></div>
+            <div class="slider" data-key="hdr" data-min="-10" data-max="10" data-def="0"><label>HDR</label></div>
+            <div class="slider" data-key="resemblance" data-min="-10" data-max="10" data-def="0"><label>Somiglianza</label></div>
+            <div class="slider" data-key="fractality" data-min="-10" data-max="10" data-def="0"><label>Frattalità</label></div>
+          </div>
+
+          <!-- PRECISION -->
+          <div id="opts-precision" class="opts" hidden>
+            <p class="muted small">Upscale fedele senza allucinazioni: ideale per foto reali e frame da mantenere identici.</p>
+            <div class="slider" data-key="sharpen" data-min="0" data-max="100" data-def="50"><label>Nitidezza</label></div>
+            <div class="slider" data-key="smart_grain" data-min="0" data-max="100" data-def="7"><label>Grana intelligente</label></div>
+            <div class="slider" data-key="ultra_detail" data-min="0" data-max="100" data-def="30"><label>Ultra dettaglio</label></div>
+          </div>
+
+          <p id="sizeNote" class="muted small"></p>
+          <button id="runBtn" class="btn primary big" disabled>Upscale</button>
+          <button id="resetBtn" class="btn ghost small-btn">Ripristina valori</button>
+          <div id="status" class="status" hidden></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="view">
+      <div class="history-head">
+        <h2>Cronologia</h2>
+        <button id="clearHistory" class="btn ghost">Svuota</button>
+      </div>
+      <p class="muted small">Gli upscale restano qui anche se chiudi l'app: al riavvio quelli in corso vengono ripresi. I link ai risultati scadono dopo un po' sul server Magnific, quindi salva quelli che ti servono.</p>
+      <div id="historyGrid" class="grid"></div>
+      <p id="historyEmpty" class="empty">Ancora nessun upscale.</p>
+    </section>
+  </main>
+
+  <!-- SETTINGS -->
+  <dialog id="settings" class="sheet">
+    <form method="dialog">
+      <h2>Impostazioni</h2>
+      <div class="field">
+        <label>Accesso all'API</label>
+        <div class="segmented" id="authMode">
+          <button type="button" class="seg active" data-auth="password">Password app</button>
+          <button type="button" class="seg" data-auth="key">Mia chiave API</button>
+        </div>
+      </div>
+      <div class="field" id="fieldPassword">
+        <label for="appPassword">Password dell'app</label>
+        <input id="appPassword" type="password" autocomplete="current-password" placeholder="La APP_PASSWORD impostata sul server">
+      </div>
+      <div class="field" id="fieldKey" hidden>
+        <label for="apiKey">Chiave API Magnific / Freepik</label>
+        <input id="apiKey" type="password" autocomplete="off" placeholder="FPSX…">
+        <p class="muted small">Resta solo su questo iPad e passa dal proxy dell'app.</p>
+      </div>
+      <div class="field">
+        <label for="apiBase">Indirizzo del proxy</label>
+        <input id="apiBase" type="url" inputmode="url" placeholder="Vuoto = stesso sito dell'app">
+      </div>
+      <div class="row">
+        <button type="button" id="testConn" class="btn ghost">Prova connessione</button>
+        <span id="testResult" class="muted small"></span>
+      </div>
+      <div class="row end">
+        <button value="close" class="btn primary">Fatto</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

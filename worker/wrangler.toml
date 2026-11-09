@@ -1,0 +1,14 @@
+name = "magnific-pedro"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+[assets]
+directory = "../app"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[vars]
+# "freepik" -> https://api.freepik.com (header x-freepik-api-key)
+# "magnific" -> https://api.magnific.com (header x-magnific-api-key)
+UPSTREAM = "freepik"

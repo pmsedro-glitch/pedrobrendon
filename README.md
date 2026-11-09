@@ -10,6 +10,24 @@ Legge gli Spaces attraverso il connettore Magnific dell'account (nessun server, 
 - **Dettagli**: tocca un nodo per vedere immagine, impostazioni, testo completo, ingressi e uscite; si possono copiare e modificare i prompt (con conferma).
 - Non avvia mai generazioni: per lanciarle si usa Magnific ("Apri nodo in Magnific").
 
+## Magnific Spaces con le dita (userscript)
+
+`userscript/magnific-spaces-touch.user.js` adatta al touch la **vera** pagina Spaces di Magnific in Safari:
+
+- pinch per lo zoom e due dita per spostarsi, senza che Safari ingrandisca la pagina intera;
+- pressione lunga = tasto destro (menu della lavagna);
+- tocco su un nodo = passaggio del mouse (compaiono maniglie e barre);
+- pulsanti + / − e pannello ✋ con le opzioni e la diagnosi.
+
+Installazione sull'iPad:
+1. Installa **Userscripts** dall'App Store (gratuita).
+2. Impostazioni → App → Safari → Estensioni → Userscripts: attivala e consenti l'accesso a magnific.com.
+3. Apri l'app Userscripts e scegli una cartella in File per gli script.
+4. Copia `magnific-spaces-touch.user.js` in quella cartella.
+5. Apri uno Space su magnific.com in Safari e ricarica la pagina: compare il pulsante ✋ in basso a destra.
+
+Se un gesto non va, apri ✋ e prova un'altra voce in "Due dita"; la riga di diagnosi dice quale lavagna ha trovato.
+
 ## Upscaler (PWA)
 
 Web app (PWA) per usare gli upscaler **Magnific** dall'iPad: si installa nella schermata Home e si apre a tutto schermo come un'app.

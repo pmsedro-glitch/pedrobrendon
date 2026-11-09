@@ -408,7 +408,7 @@ const outputsOf = (S, id) => S.conns.filter((c) => c.src === id);
 
 /* ---------- stato app ---------- */
 const app = {
-  list: [], listPage: 1, hasMore: false, ownership: store.get("own", "all"), query: "",
+  list: [], listPage: 1, hasMore: false, ownership: "mine", query: "",
   spaceId: null, spaceName: "", S: null, pageId: null, view: store.get("view", "flow"),
   selected: null, cam: { x: 0, y: 0, s: 0.3 }, loadedAt: null,
 };
@@ -432,16 +432,9 @@ async function showList(append) {
     main.innerHTML = `<div class="scroll"><div class="wrap">
       <div class="tools">
         <input class="search" id="q" type="search" placeholder="Cerca uno Space per nome" value="${esc(app.query)}" autocomplete="off">
-        <div class="seg" id="own">
-          <button type="button" data-v="all">Tutti</button><button type="button" data-v="mine">Miei</button><button type="button" data-v="shared">Condivisi</button>
-        </div>
       </div>
       <div id="listBody">${loading("Carico i tuoi Spaces…")}</div>
     </div></div>`;
-    $("#own").querySelectorAll("button").forEach((b) => {
-      b.setAttribute("aria-pressed", String(b.dataset.v === app.ownership));
-      b.onclick = () => { app.ownership = b.dataset.v; store.set("own", app.ownership); showList(); };
-    });
     let t; $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { app.query = e.target.value.trim(); loadList(false); }, 350); });
     app.listPage = 1; app.list = [];
   }
@@ -451,10 +444,10 @@ async function loadList(append) {
   const body = $("#listBody"); if (!body) return;
   if (!append) { app.listPage = 1; app.list = []; body.innerHTML = loading("Carico i tuoi Spaces…"); }
   try {
-    const input = { perPage: 48, page: app.listPage, ownership: app.ownership };
+    const input = { perPage: 48, page: app.listPage, ownership: "mine" }; // solo gli Spaces dell'account PEDRO MAGNIFIC
     if (app.query) input.query = app.query;
     const d = await call("spaces_list", input, { cache: { staleTime: 60_000, gcTime: WEEK } });
-    app.list = app.list.concat(d.spaces || []);
+    app.list = app.list.concat((d.spaces || []).filter((s) => s.isOwn !== false));
     app.hasMore = !!d.pagination?.hasMore;
     renderList();
   } catch (e) {

@@ -1,5 +1,17 @@
 # Magnific Pedro per iPad
 
+## Spaces su iPad (la parte principale)
+
+`spaces/pedro-spaces.html` è pubblicata come pagina claude.ai: https://claude.ai/artifact/5gmLTbXApsBb489oDHeteq
+Legge gli Spaces attraverso il connettore Magnific dell'account (nessun server, nessuna chiave), quindi va aperta in claude.ai o nell'app Claude sull'iPad.
+
+- **Flusso**: ogni nodo di generazione è una scheda con i prompt (viola), i riferimenti (ambra), le impostazioni e il risultato.
+- **Lavagna**: la stessa disposizione di Magnific, con pan a un dito, pinch-zoom, doppio tocco per adattare e collegamenti colorati.
+- **Dettagli**: tocca un nodo per vedere immagine, impostazioni, testo completo, ingressi e uscite; si possono copiare e modificare i prompt (con conferma).
+- Non avvia mai generazioni: per lanciarle si usa Magnific ("Apri nodo in Magnific").
+
+## Upscaler (PWA)
+
 Web app (PWA) per usare gli upscaler **Magnific** dall'iPad: si installa nella schermata Home e si apre a tutto schermo come un'app.
 
 - **Creative**: scala 2x, 4x, 8x o 16x, prompt, *Ottimizzato per*, motore (Illusio, Sharpy, Sparkle), creatività, HDR, somiglianza e frattalità.

@@ -1,0 +1,856 @@
+<title>Pedro Spaces</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app a schermo intero — barra in alto, poi lavagna (pan/zoom) o elenco "Flusso"; pannello dettagli a destra (iPad) o dal basso (telefono). Look scuro deciso, come la lavagna di Magnific. */
+:root {
+  --bg: #0e0f12;          /* fondo app */
+  --board: #121318;       /* fondo lavagna */
+  --surface: #1a1c22;     /* card, pannelli */
+  --surface-2: #23262e;   /* campi, chip */
+  --line: #2e323c;        /* bordi */
+  --fg: #eceef3;
+  --muted: #9097a6;
+  --violet: #a78bfa;      /* prompt / testo */
+  --amber: #f0b45a;       /* immagini */
+  --teal: #5ec8c0;        /* video e altro */
+  --primary: #e9e4ff;     /* azione principale */
+  --primary-fg: #15121f;
+  --danger: #ff7b7b;
+  --ok: #7fd49a;
+  --font-ui: "Manrope", -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.45 var(--font-ui);
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+
+.app { height: 100%; display: flex; flex-direction: column; }
+.bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--bg);
+  position: relative; z-index: 5;
+}
+.brand { font-weight: 700; letter-spacing: -0.01em; font-size: 17px; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand .dot { width: 10px; height: 10px; border-radius: 3px; background: var(--violet); box-shadow: 14px 0 0 var(--amber); margin-right: 14px; flex: none; }
+.brand .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow { flex: 1; min-width: 0; }
+.btn {
+  min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-weight: 600; font-size: 14px; text-decoration: none; color: var(--fg); white-space: nowrap;
+}
+.btn:hover { border-color: #444a57; }
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn.danger { color: var(--danger); }
+.btn.icon { width: 40px; padding: 0; }
+.btn:disabled { opacity: .45; cursor: default; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; min-height: 34px; padding: 0 12px; border-radius: 8px; color: var(--muted); font-weight: 600; font-size: 14px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { border: 1px solid var(--line); background: none; border-radius: 999px; min-height: 34px; padding: 0 12px; color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .03em; white-space: nowrap; }
+.tab[aria-pressed="true"] { color: var(--fg); background: var(--surface-2); border-color: #444a57; }
+
+main { flex: 1; min-height: 0; position: relative; }
+.scroll { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.wrap { padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1400px; margin: 0 auto; }
+
+/* elenco spaces */
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.search { flex: 1 1 260px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 0 14px; font-size: 16px; }
+.spaces { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.space-card {
+  display: grid; grid-template-rows: auto 1fr; text-align: left; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 14px; padding: 0; overflow: hidden; color: var(--fg);
+}
+.space-card:hover { border-color: #444a57; }
+.glyph { height: 96px; position: relative; background: var(--board); border-bottom: 1px solid var(--line); overflow: hidden; }
+.glyph i { position: absolute; border-radius: 4px; border: 1px solid var(--line); background: var(--surface-2); }
+.glyph i.v { background: color-mix(in srgb, var(--violet) 30%, var(--surface-2)); border-color: color-mix(in srgb, var(--violet) 45%, var(--line)); }
+.glyph i.a { background: color-mix(in srgb, var(--amber) 22%, var(--surface-2)); border-color: color-mix(in srgb, var(--amber) 40%, var(--line)); }
+.space-card .meta { padding: 12px 14px; display: grid; gap: 4px; }
+.space-card strong { font-size: 15px; line-height: 1.3; text-wrap: balance; }
+.space-card small { color: var(--muted); font-size: 12px; display: flex; gap: 8px; align-items: center; }
+.pill { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.more { display: flex; justify-content: center; margin-top: 20px; }
+
+/* lavagna */
+.viewport { position: absolute; inset: 0; overflow: hidden; background: var(--board); touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
+  background-image: radial-gradient(circle, #23262e 1px, transparent 1.2px); background-size: 28px 28px; }
+.viewport.dragging { cursor: grabbing; }
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.wires { position: absolute; overflow: visible; pointer-events: none; }
+.wires path { fill: none; stroke-width: 3; opacity: .8; }
+.node { position: absolute; border-radius: 16px; border: 2px solid var(--line); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+.node.sel { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 35%, transparent); }
+.node .nh { display: flex; gap: 10px; align-items: baseline; padding: 14px 18px 10px; font-size: 20px; }
+.node .nt { font: 500 15px var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; flex: none; }
+.node .nn { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .nb { flex: 1; min-height: 0; display: flex; gap: 14px; padding: 0 18px 16px; }
+.node .chips { display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; width: 200px; flex: none; }
+.node .chips span { font: 500 15px var(--font-mono); padding: 4px 10px; border-radius: 8px; background: var(--surface-2); color: var(--fg); }
+.node .pic { flex: 1; min-width: 0; border-radius: 10px; background: var(--board); display: grid; place-items: center; overflow: hidden; }
+.node .pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.node .pic .ph { font: 500 14px var(--font-mono); color: var(--muted); }
+.node.t-creation { padding: 0; background: var(--board); }
+.node.t-creation .pic { border-radius: 0; height: 100%; }
+.node.t-text { border-color: color-mix(in srgb, var(--violet) 45%, var(--line)); }
+.node.t-text .tx { padding: 0 18px 16px; font-size: 17px; line-height: 1.45; color: var(--fg); overflow: hidden; white-space: pre-wrap; flex: 1; mask-image: linear-gradient(#000 70%, transparent); }
+.node.t-panel { background: transparent; border-style: dashed; border-color: #3a3f4b; }
+.node.t-panel .nh { font-size: 22px; color: var(--muted); }
+.node.t-drawing { background: transparent; border: 2px dashed #2a2e37; }
+.zoombar { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; z-index: 3; }
+.zoombar .btn { background: var(--surface); }
+.zoomlabel { font: 500 12px var(--font-mono); color: var(--muted); align-self: center; min-width: 46px; text-align: center; }
+.legend { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 12px; font-size: 12px; color: var(--muted); background: color-mix(in srgb, var(--bg) 80%, transparent); padding: 6px 10px; border-radius: 8px; z-index: 3; }
+.legend b { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+
+/* flusso */
+.flow { display: grid; gap: 14px; }
+.step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; overflow: hidden; }
+@media (max-width: 760px) { .step { grid-template-columns: 1fr; } }
+.step .ins { padding: 16px; display: grid; gap: 12px; align-content: start; border-right: 1px solid var(--line); min-width: 0; }
+@media (max-width: 760px) { .step .ins { border-right: 0; border-bottom: 1px solid var(--line); } }
+.step .out { padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.label { font: 500 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.label .sw { width: 8px; height: 8px; border-radius: 2px; }
+.prompt { border: 1px solid color-mix(in srgb, var(--violet) 35%, var(--line)); background: color-mix(in srgb, var(--violet) 7%, var(--surface)); border-radius: 10px; padding: 12px; text-align: left; color: var(--fg); display: grid; gap: 6px; width: 100%; }
+.prompt strong { font-size: 14px; }
+.prompt p { margin: 0; color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+.refs { display: flex; gap: 8px; flex-wrap: wrap; }
+.ref { width: 84px; height: 84px; border-radius: 10px; border: 1px solid var(--line); background: var(--board); padding: 0; overflow: hidden; display: grid; place-items: center; }
+.ref img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ref .ph { font: 500 10px var(--font-mono); color: var(--muted); padding: 4px; text-align: center; }
+.outhead { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.outhead h3 { margin: 0; font-size: 17px; line-height: 1.3; text-wrap: balance; }
+.kv { display: flex; flex-wrap: wrap; gap: 6px; }
+.kv span { font: 500 12px var(--font-mono); padding: 3px 8px; border-radius: 6px; background: var(--surface-2); }
+.big { border-radius: 10px; background: var(--board); border: 1px solid var(--line); aspect-ratio: 3 / 2; max-width: 100%; display: block; position: relative; overflow: hidden; padding: 0; width: 100%; }
+.big img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.big .ph { position: absolute; inset: 0; display: grid; place-items: center; }
+.big .ph, .pic .ph { font: 500 12px var(--font-mono); color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+h2.sec { font-size: 13px; font-family: var(--font-mono); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 26px 0 10px; }
+.loose { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+
+/* pannello dettagli */
+.sheet {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 6;
+  background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column;
+  box-shadow: -20px 0 40px rgb(0 0 0 / .35);
+}
+@media (max-width: 700px) {
+  .sheet { top: auto; left: 0; width: 100%; height: 82%; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -20px 40px rgb(0 0 0 / .4); }
+}
+.sheet .sh { display: flex; gap: 10px; align-items: flex-start; padding: 16px; border-bottom: 1px solid var(--line); }
+.sheet .sh h3 { margin: 2px 0 0; font-size: 18px; line-height: 1.3; text-wrap: balance; }
+.sheet .sb { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 18px; }
+.sheet .sb > * { flex: none; }
+.sheet dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.sheet dt { color: var(--muted); }
+.sheet dd { margin: 0; font-family: var(--font-mono); font-size: 13px; word-break: break-word; }
+.fulltext { white-space: pre-wrap; font-size: 14px; line-height: 1.55; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0; max-height: 46vh; overflow-y: auto; }
+textarea.edit { width: 100%; min-height: 40vh; border-radius: 10px; border: 1px solid var(--violet); background: var(--board); padding: 12px; font-size: 16px; line-height: 1.5; resize: vertical; }
+.confirm { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface-2); display: grid; gap: 10px; font-size: 14px; }
+.links { display: grid; gap: 6px; }
+.links button { text-align: left; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; color: var(--fg); display: flex; gap: 10px; align-items: center; }
+.links button small { color: var(--muted); font-family: var(--font-mono); font-size: 11px; margin-left: auto; }
+
+/* stati */
+.state { display: grid; place-items: center; height: 100%; padding: 24px; text-align: center; }
+.state > div { max-width: 460px; display: grid; gap: 12px; justify-items: center; }
+.state h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+.state p { margin: 0; color: var(--muted); }
+.spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--violet); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--primary); color: var(--primary-fg); padding: 10px 16px; border-radius: 10px; font-weight: 600; z-index: 20; max-width: calc(100% - 32px); }
+.toast.err { background: var(--danger); }
+.note { font-size: 12px; color: var(--muted); }
+.stale { font: 500 11px var(--font-mono); color: var(--muted); }
+</style>
+
+<div class="app">
+  <header class="bar" id="bar"></header>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+const SERVER = "PEDRO MAGNIFIC";
+const WEEK = 7 * 24 * 3600 * 1000;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("ps." + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("ps." + k, JSON.stringify(v)); } catch {} },
+};
+
+/* ---------- lettore TOON (formato compatto delle risposte Magnific) ---------- */
+function toonPrim(s) {
+  s = s.trim();
+  if (s === "") return "";
+  if (s[0] === '"') { try { return JSON.parse(s); } catch { return s.slice(1, -1); } }
+  if (s === "true") return true;
+  if (s === "false") return false;
+  if (s === "null") return null;
+  if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(s) && !/^-?0\d/.test(s)) return Number(s);
+  return s;
+}
+function toonSplit(s, delim = ",") {
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { cur += c; if (c === "\\") { cur += s[++i] ?? ""; } else if (c === '"') q = false; }
+    else if (c === '"') { q = true; cur += c; }
+    else if (c === delim) { out.push(cur); cur = ""; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out.map(toonPrim);
+}
+const ind = (l) => l.length - l.trimStart().length;
+function parseToon(text) {
+  const lines = text.split("\n").filter((l) => l.trim() !== "");
+  const [obj] = toonBlock(lines, 0, 0);
+  return obj;
+}
+const HEAD = /^("(?:[^"\\]|\\.)*"|[^:\[]+?)(?:\[(\d+)([|\t]?)\](?:\{([^}]*)\})?)?:(?:\s(.*))?$/;
+function toonBlock(lines, i, level) {
+  const obj = {};
+  while (i < lines.length && ind(lines[i]) === level) {
+    const line = lines[i].trim();
+    const m = HEAD.exec(line);
+    if (!m) { i++; continue; }
+    let key = m[1]; if (key[0] === '"') { try { key = JSON.parse(key); } catch {} }
+    const count = m[2], delim = m[3] || ",", fields = m[4], rest = m[5];
+    i++;
+    if (count !== undefined && fields !== undefined) {
+      const keys = fields.split(delim).map((f) => String(toonPrim(f)));
+      const rows = [];
+      while (i < lines.length && ind(lines[i]) > level) {
+        const vals = toonSplit(lines[i].trim(), delim);
+        const r = {}; keys.forEach((k, j) => (r[k] = vals[j] ?? null));
+        rows.push(r); i++;
+      }
+      obj[key] = rows;
+    } else if (count !== undefined) {
+      if (rest !== undefined && rest.trim() !== "") { obj[key] = toonSplit(rest, delim); continue; }
+      const items = [];
+      while (i < lines.length && ind(lines[i]) > level) {
+        const il = ind(lines[i]); const t = lines[i].trim();
+        if (!t.startsWith("-")) { i++; continue; }
+        const body = t.replace(/^-\s?/, "");
+        if (HEAD.test(body) && !/^"[^"]*"$/.test(body)) {
+          lines[i] = " ".repeat(il + 2) + body;
+          const [o, ni] = toonBlock(lines, i, il + 2); items.push(o); i = ni;
+        } else { items.push(toonPrim(body)); i++; }
+      }
+      obj[key] = items;
+    } else if (rest === undefined || rest === "") {
+      if (i < lines.length && ind(lines[i]) > level) { const [o, ni] = toonBlock(lines, i, ind(lines[i])); obj[key] = o; i = ni; }
+      else obj[key] = {};
+    } else obj[key] = toonPrim(rest);
+  }
+  return [obj, i];
+}
+
+/* ---------- connettore ---------- */
+let mcp = null;
+function resultData(r) {
+  if (r && r.structuredContent && typeof r.structuredContent === "object") return r.structuredContent;
+  if (r && r.payload && typeof r.payload === "object") return r.payload;
+  const text = (r?.content || []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
+  try { return JSON.parse(text); } catch {}
+  return parseToon(text);
+}
+async function call(tool, input, opts) {
+  try {
+    return resultData(await mcp.callTool(SERVER, tool, input, opts));
+  } catch (e) {
+    if (e && e.retryable) {
+      await new Promise((r) => setTimeout(r, Math.min(e.retryAfterMs || 1200, 8000) + Math.random() * 400));
+      return resultData(await mcp.callTool(SERVER, tool, input, opts));
+    }
+    throw e;
+  }
+}
+function errorView(e, retry) {
+  const code = e?.code || "upstream_error";
+  const copy = {
+    needs_reauth: ["Magnific va ricollegato", "Riconnetti il connettore in claude.ai → Impostazioni → Connettori, poi riprova."],
+    server_not_connected: ["Connettore Magnific non trovato", `Aggiungi il connettore "${SERVER}" in claude.ai → Impostazioni → Connettori.`],
+    selection_required: ["Scegli quale Magnific usare", "Hai più connettori con lo stesso nome: scegli quello giusto nella richiesta di claude.ai."],
+    not_in_manifest: ["Accesso a Magnific non consentito", "Hai negato l'accesso per questa pagina. Riattivalo dai Permessi della pagina."],
+    approval_required: ["Serve la tua approvazione", "Tocca Consenti per far leggere a questa pagina i tuoi Spaces."],
+    blocked_by_policy: ["Bloccato dalla tua organizzazione", "Questo strumento Magnific non è consentito per il tuo account."],
+    server_unavailable: ["Magnific non risponde", "Il servizio è momentaneamente irraggiungibile. Riprova tra poco."],
+    tool_error: ["Magnific ha restituito un errore", e?.message || ""],
+  }[code] || ["Qualcosa non ha funzionato", e?.message || code];
+  const el = document.createElement("div");
+  el.className = "state";
+  el.innerHTML = `<div><h2>${esc(copy[0])}</h2><p>${esc(copy[1])}</p><div class="row"></div></div>`;
+  const row = $(".row", el);
+  if (retry) { const b = btn(code === "approval_required" ? "Consenti" : "Riprova", retry, "primary"); row.append(b); }
+  if (code === "not_in_manifest") {
+    row.append(btn("Apri Permessi", async () => {
+      try { const p = await window.claude.use("permissions"); await p?.manage(); } catch {}
+      retry && retry();
+    }));
+  }
+  return el;
+}
+function btn(label, onClick, cls = "") {
+  const b = document.createElement("button");
+  b.className = "btn " + cls; b.type = "button"; b.textContent = label;
+  b.addEventListener("click", onClick);
+  return b;
+}
+function toast(msg, err) {
+  const t = $("#toast"); t.textContent = msg; t.className = "toast" + (err ? " err" : ""); t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3200);
+}
+function loading(msg) { return `<div class="state"><div><div class="spin"></div><p>${esc(msg)}</p></div></div>`; }
+
+/* ---------- immagini (arrivano dal connettore, non dal CDN) ---------- */
+const imgCache = new Map();
+const imgQueue = []; let imgActive = 0;
+function getImage(id, hq = "low") {
+  const key = id + "|" + hq;
+  if (!imgCache.has(key)) {
+    imgCache.set(key, new Promise((resolve, reject) => { imgQueue.push({ id, hq, resolve, reject }); pump(); }));
+    imgCache.get(key).catch(() => imgCache.delete(key));
+  }
+  return imgCache.get(key);
+}
+function pump() {
+  while (imgActive < 3 && imgQueue.length) {
+    const job = imgQueue.shift(); imgActive++;
+    mcp.callTool(SERVER, "creations_read", { creationIdentifier: job.id, hq: job.hq }, { cache: { staleTime: WEEK, gcTime: WEEK } })
+      .then((r) => {
+        const b = (r.content || []).find((c) => c.type === "image");
+        if (!b) throw { code: "no_image" };
+        job.resolve(`data:${b.mimeType || "image/jpeg"};base64,${b.data}`);
+      })
+      .catch(job.reject)
+      .finally(() => { imgActive--; pump(); });
+  }
+}
+let io = null;
+function observeImages(root, ioRoot) {
+  io?.disconnect();
+  io = new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      const holder = en.target; io.unobserve(holder);
+      fillImage(holder);
+    }
+  }, { root: ioRoot || null, rootMargin: "300px" });
+  root.querySelectorAll("[data-cid]").forEach((h) => io.observe(h));
+}
+function fillImage(holder, hq = holder.dataset.hq || "low") {
+  const id = holder.dataset.cid;
+  getImage(id, hq).then((src) => {
+    const img = new Image(); img.alt = ""; img.src = src; img.draggable = false;
+    holder.replaceChildren(img);
+  }).catch(() => { holder.innerHTML = `<span class="ph">anteprima non disponibile</span>`; });
+}
+function imgHolder(cid, cls, hq) {
+  if (!cid) return `<div class="${cls}"><span class="ph">nessun risultato</span></div>`;
+  return `<div class="${cls}" data-cid="${esc(cid)}"${hq ? ` data-hq="${hq}"` : ""}><span class="ph">…</span></div>`;
+}
+
+/* ---------- modello dello space ---------- */
+const TYPE_LABEL = {
+  "image-generator": "Immagine", "video-generator": "Video", "image-upscaler": "Upscale", "video-upscaler": "Upscale video",
+  text: "Prompt", creation: "Asset", panel: "Gruppo", drawing: "Disegno", "sticky-note": "Nota", list: "Lista",
+};
+const typeLabel = (t) => TYPE_LABEL[t] || String(t || "").replace(/-/g, " ");
+const SETTING_LABEL = {
+  mode: "Modello", modelSlug: "Modello", aspectRatio: "Formato", resolution: "Risoluzione", quality: "Qualità", scale: "Scala",
+  optimised: "Ottimizzato", imagination: "Immaginazione", duration: "Durata", seed: "Seed", color: "Colore",
+};
+const HIDDEN_KEYS = new Set(["text", "prompt", "currentCreationIdentifier", "creationIdentifier", "dataVersion"]);
+const isTrunc = (v) => typeof v === "string" && /…\[truncated\+\d+\]$/.test(v);
+const cut = (v) => (typeof v === "string" ? v.replace(/…\[truncated\+\d+\]$/, "…") : v);
+const outputOf = (n) => n.data.currentCreationIdentifier || n.data.creationIdentifier || null;
+const textOf = (n) => n.data.text ?? n.data.prompt ?? null;
+const wireColor = (t) => (t === "text" ? "var(--violet)" : t === "image" ? "var(--amber)" : "var(--teal)");
+
+function buildSpace(d) {
+  const nodes = new Map();
+  for (const n of d.nodes || []) nodes.set(n.id, { ...n, data: {} });
+  for (const r of d.nodeData || []) { const n = nodes.get(r.elementId); if (n) n.data[r.key] = r.value; }
+  const conns = (d.connections || []).map((c) => ({ ...c, src: c.sourceElementId, dst: c.targetElementId }));
+  const pages = (d.pages || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((p) => ({ ...p, id: String(p.id) }));
+  for (const n of nodes.values()) n.pageId = String(n.pageId);
+  return { board: d.board || {}, nodes, conns, pages };
+}
+const inputsOf = (S, id) => S.conns.filter((c) => c.dst === id);
+const outputsOf = (S, id) => S.conns.filter((c) => c.src === id);
+
+/* ---------- stato app ---------- */
+const app = {
+  list: [], listPage: 1, hasMore: false, ownership: store.get("own", "all"), query: "",
+  spaceId: null, spaceName: "", S: null, pageId: null, view: store.get("view", "flow"),
+  selected: null, cam: { x: 0, y: 0, s: 0.3 }, loadedAt: null,
+};
+
+/* ---------- routing ---------- */
+function route() {
+  const m = /^#s-([0-9a-f-]{36})$/i.exec(location.hash);
+  if (m) openSpace(m[1]); else showList();
+}
+window.addEventListener("hashchange", route);
+
+/* ---------- elenco spaces ---------- */
+function barList() {
+  $("#bar").innerHTML = `<div class="brand"><span class="dot"></span><span class="name">Pedro Spaces</span></div><div class="grow"></div>`;
+}
+async function showList(append) {
+  app.spaceId = null; app.S = null; closeSheet();
+  barList();
+  const main = $("#main");
+  if (!append) {
+    main.innerHTML = `<div class="scroll"><div class="wrap">
+      <div class="tools">
+        <input class="search" id="q" type="search" placeholder="Cerca uno Space per nome" value="${esc(app.query)}" autocomplete="off">
+        <div class="seg" id="own">
+          <button type="button" data-v="all">Tutti</button><button type="button" data-v="mine">Miei</button><button type="button" data-v="shared">Condivisi</button>
+        </div>
+      </div>
+      <div id="listBody">${loading("Carico i tuoi Spaces…")}</div>
+    </div></div>`;
+    $("#own").querySelectorAll("button").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.dataset.v === app.ownership));
+      b.onclick = () => { app.ownership = b.dataset.v; store.set("own", app.ownership); showList(); };
+    });
+    let t; $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { app.query = e.target.value.trim(); loadList(false); }, 350); });
+    app.listPage = 1; app.list = [];
+  }
+  loadList(append);
+}
+async function loadList(append) {
+  const body = $("#listBody"); if (!body) return;
+  if (!append) { app.listPage = 1; app.list = []; body.innerHTML = loading("Carico i tuoi Spaces…"); }
+  try {
+    const input = { perPage: 48, page: app.listPage, ownership: app.ownership };
+    if (app.query) input.query = app.query;
+    const d = await call("spaces_list", input, { cache: { staleTime: 60_000, gcTime: WEEK } });
+    app.list = app.list.concat(d.spaces || []);
+    app.hasMore = !!d.pagination?.hasMore;
+    renderList();
+  } catch (e) {
+    body.replaceChildren(errorView(e, () => loadList(append)));
+  }
+}
+function glyph(name) {
+  let h = 0; for (const c of name || "") h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  let out = "";
+  for (let k = 0; k < 6; k++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const x = 6 + (h % 70), y = 10 + ((h >> 8) % 55), w = 14 + ((h >> 16) % 14), cls = ["", "v", "a"][(h >> 4) % 3];
+    out += `<i class="${cls}" style="left:${x}%;top:${y}%;width:${w}%;height:26%"></i>`;
+  }
+  return out;
+}
+function relDate(s) {
+  const d = new Date(s); if (isNaN(d)) return "";
+  const days = Math.round((Date.now() - d) / 864e5);
+  if (days <= 0) return "oggi"; if (days === 1) return "ieri"; if (days < 30) return `${days} giorni fa`;
+  return d.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
+}
+function renderList() {
+  const body = $("#listBody"); if (!body) return;
+  if (!app.list.length) { body.innerHTML = `<div class="state" style="height:auto;padding:60px 0"><div><h2>Nessuno Space trovato</h2><p>Prova un altro nome o cambia filtro.</p></div></div>`; return; }
+  body.innerHTML = `<div class="spaces">${app.list.map((s) => `
+    <button class="space-card" type="button" data-id="${esc(s.id)}">
+      <div class="glyph">${glyph(s.name)}</div>
+      <div class="meta"><strong>${esc(s.name || "Senza titolo")}</strong>
+        <small>${esc(relDate(s.updatedAt))}${s.isOwn === false ? '<span class="pill">condiviso</span>' : ""}</small></div>
+    </button>`).join("")}</div>${app.hasMore ? '<div class="more"><button class="btn" id="moreBtn" type="button">Mostra altri</button></div>' : ""}`;
+  body.querySelectorAll(".space-card").forEach((c) => c.onclick = () => {
+    const s = app.list.find((x) => x.id === c.dataset.id); app.spaceName = s?.name || "";
+    location.hash = "s-" + c.dataset.id;
+  });
+  const mb = $("#moreBtn"); if (mb) mb.onclick = () => { app.listPage++; mb.disabled = true; loadList(true); };
+}
+
+/* ---------- space ---------- */
+async function openSpace(id, keepCamera) {
+  const same = app.spaceId === id;
+  app.spaceId = id;
+  if (!same) { app.pageId = null; app.selected = null; closeSheet(); }
+  if (!app.spaceName) { const s = app.list.find((x) => x.id === id); app.spaceName = s?.name || "Space"; }
+  barSpace();
+  if (!keepCamera) $("#main").innerHTML = loading("Apro lo Space…");
+  try {
+    const d = await call("spaces_state", { spaceId: id }, { cache: { staleTime: 15_000, gcTime: WEEK } });
+    if (app.spaceId !== id) return;
+    app.S = buildSpace(d);
+    app.loadedAt = Date.now();
+    if (!app.pageId || !app.S.pages.some((p) => p.id === app.pageId)) app.pageId = String(app.S.board.currentPageId ?? app.S.pages[0]?.id ?? "1");
+    barSpace();
+    renderSpace(!keepCamera);
+  } catch (e) {
+    $("#main").replaceChildren(errorView(e, () => openSpace(id)));
+  }
+}
+function barSpace() {
+  const S = app.S;
+  $("#bar").innerHTML = `
+    <button class="btn icon" id="back" type="button" aria-label="Tutti gli Spaces">←</button>
+    <div class="brand grow"><span class="name">${esc(app.spaceName)}</span></div>
+    <div class="seg" id="viewSeg"><button type="button" data-v="flow">Flusso</button><button type="button" data-v="canvas">Lavagna</button></div>
+    <button class="btn icon" id="reload" type="button" aria-label="Aggiorna">↻</button>
+    <a class="btn" target="_blank" rel="noopener" href="https://www.magnific.com/app/spaces/${esc(app.spaceId)}">Apri in Magnific</a>
+    ${S && S.pages.length > 1 ? `<div class="tabs" id="tabs" style="flex-basis:100%">${S.pages.map((p) => `<button class="tab" type="button" data-p="${esc(p.id)}" aria-pressed="${p.id === app.pageId}">${esc(p.name || "Pagina")}</button>`).join("")}</div>` : ""}`;
+  $("#back").onclick = () => { app.spaceName = ""; location.hash = ""; };
+  $("#reload").onclick = async () => { try { await mcp.invalidate(SERVER, "spaces_state"); } catch {} openSpace(app.spaceId, true); };
+  $("#viewSeg").querySelectorAll("button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.v === app.view));
+    b.onclick = () => { app.view = b.dataset.v; store.set("view", app.view); barSpace(); renderSpace(true); };
+  });
+  $("#tabs")?.querySelectorAll(".tab").forEach((t) => t.onclick = () => { app.pageId = t.dataset.p; closeSheet(); barSpace(); renderSpace(true); });
+}
+function pageNodes() { return [...app.S.nodes.values()].filter((n) => n.pageId === app.pageId); }
+function renderSpace(fit) {
+  if (!app.S) return;
+  if (app.view === "canvas") renderCanvas(fit); else renderFlow();
+}
+
+/* ---------- vista Flusso ---------- */
+function settingChips(n) {
+  return Object.entries(n.data).filter(([k, v]) => !HIDDEN_KEYS.has(k) && v !== null && v !== "" && SETTING_LABEL[k] && k !== "color")
+    .map(([k, v]) => `<span title="${esc(SETTING_LABEL[k])}">${esc(cut(v))}</span>`).join("");
+}
+function renderFlow() {
+  const S = app.S;
+  const nodes = pageNodes().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  const steps = nodes.filter((n) => n.workflowStatus != null || inputsOf(S, n.id).length && !["text", "creation", "panel", "drawing"].includes(n.type));
+  const used = new Set(); S.conns.forEach((c) => { used.add(c.src); used.add(c.dst); });
+  const loose = nodes.filter((n) => !used.has(n.id) && (n.type === "text" || n.type === "creation"));
+
+  const stepHtml = steps.map((n) => {
+    const ins = inputsOf(S, n.id);
+    const prompts = ins.map((c) => S.nodes.get(c.src)).filter((s) => s && s.type === "text");
+    const refs = ins.map((c) => S.nodes.get(c.src)).filter((s) => s && s.type !== "text");
+    return `<article class="step">
+      <div class="ins">
+        ${prompts.length ? `<div class="label"><span class="sw" style="background:var(--violet)"></span>Prompt</div>` : `<div class="label">Nessun prompt collegato</div>`}
+        ${prompts.map((p) => `<button class="prompt" type="button" data-open="${esc(p.id)}"><strong>${esc(p.name)}</strong><p>${esc(cut(textOf(p)) || "")}</p></button>`).join("")}
+        ${refs.length ? `<div class="label"><span class="sw" style="background:var(--amber)"></span>Riferimenti</div>
+          <div class="refs">${refs.map((r) => `<button class="ref" type="button" data-open="${esc(r.id)}" aria-label="${esc(r.name)}">${outputOf(r) ? `<span data-cid="${esc(outputOf(r))}" style="display:contents"><span class="ph">…</span></span>` : `<span class="ph">${esc(r.name)}</span>`}</button>`).join("")}</div>` : ""}
+      </div>
+      <div class="out">
+        <div class="outhead"><span class="label">${esc(typeLabel(n.type))}</span><h3>${esc(n.name)}</h3></div>
+        <div class="kv">${settingChips(n)}</div>
+        <button class="big" type="button" data-open="${esc(n.id)}" aria-label="Dettagli ${esc(n.name)}">${outputOf(n) ? `<span data-cid="${esc(outputOf(n))}" data-hq="medium" style="display:contents"><span class="ph">…</span></span>` : `<span class="ph">non ancora generato</span>`}</button>
+        <div class="row"><button class="btn" type="button" data-open="${esc(n.id)}">Dettagli</button><a class="btn" target="_blank" rel="noopener" href="${esc(focusUrl(n.id))}">Apri nodo in Magnific</a></div>
+      </div>
+    </article>`;
+  }).join("");
+
+  const looseHtml = loose.map((n) => n.type === "text"
+    ? `<button class="prompt" type="button" data-open="${esc(n.id)}"><strong>${esc(n.name)}</strong><p>${esc(cut(textOf(n)) || "")}</p></button>`
+    : `<button class="big" style="aspect-ratio:1" type="button" data-open="${esc(n.id)}"><span data-cid="${esc(outputOf(n))}" style="display:contents"><span class="ph">…</span></span></button>`).join("");
+
+  const others = nodes.length - steps.length - loose.length;
+  $("#main").innerHTML = `<div class="scroll" id="flowScroll"><div class="wrap">
+    ${steps.length ? `<div class="flow">${stepHtml}</div>` : `<div class="state" style="height:auto;padding:40px 0"><div><h2>Nessun nodo di generazione in questa pagina</h2><p>Passa alla Lavagna per vedere tutti gli elementi.</p></div></div>`}
+    ${loose.length ? `<h2 class="sec">Elementi non collegati</h2><div class="loose">${looseHtml}</div>` : ""}
+    <p class="note" style="margin-top:20px">${steps.length} passaggi · ${nodes.length} elementi in questa pagina${others > 0 ? ` (gruppi e disegni visibili nella Lavagna)` : ""} · <span class="stale">aggiornato ${new Date(app.loadedAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}</span></p>
+  </div></div>`;
+  $("#main").querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => select(b.dataset.open)));
+  // in Flusso i segnaposto immagine sono <span data-cid> dentro ai bottoni
+  $("#main").querySelectorAll("span[data-cid]").forEach((s) => { s.style.display = "contents"; });
+  observeFlowImages();
+}
+function observeFlowImages() {
+  const root = $("#flowScroll");
+  io?.disconnect();
+  io = new IntersectionObserver((entries) => {
+    for (const en of entries) if (en.isIntersecting) { io.unobserve(en.target); const h = en.target.querySelector("[data-cid]"); if (h) fillSpan(h, en.target); }
+  }, { root, rootMargin: "400px" });
+  root.querySelectorAll(".big, .ref").forEach((b) => { if (b.querySelector("[data-cid]")) io.observe(b); });
+}
+function fillSpan(span, box) {
+  getImage(span.dataset.cid, span.dataset.hq || "low").then((src) => {
+    const img = new Image(); img.alt = ""; img.src = src; box.replaceChildren(img);
+  }).catch(() => { box.innerHTML = `<span class="ph">anteprima non disponibile</span>`; });
+}
+const focusUrl = (id) => `https://www.magnific.com/app/spaces/${app.spaceId}?focusNode=${id}`;
+
+/* ---------- vista Lavagna ---------- */
+let vp = null, world = null;
+function renderCanvas(fit) {
+  const S = app.S;
+  const nodes = pageNodes();
+  const order = (n) => (n.type === "panel" ? 0 : n.type === "drawing" ? 1 : 2);
+  nodes.sort((a, b) => order(a) - order(b));
+  const ids = new Set(nodes.map((n) => n.id));
+  const conns = S.conns.filter((c) => ids.has(c.src) && ids.has(c.dst));
+  const b = bounds(nodes);
+
+  const wires = conns.map((c) => {
+    const a = S.nodes.get(c.src), z = S.nodes.get(c.dst);
+    const x1 = a.x + a.width - b.x, y1 = a.y + a.height / 2 - b.y, x2 = z.x - b.x, y2 = z.y + z.height / 2 - b.y;
+    const dx = Math.max(80, Math.abs(x2 - x1) / 2);
+    return `<path d="M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}" stroke="${wireColor(c.dataType)}"/>`;
+  }).join("");
+
+  const nodeHtml = nodes.map((n) => {
+    const st = `left:${n.x}px;top:${n.y}px;width:${n.width}px;height:${n.height}px`;
+    const sel = app.selected === n.id ? " sel" : "";
+    const base = `class="node t-${esc(n.type)}${sel}" data-id="${esc(n.id)}" style="${st}"`;
+    if (n.type === "creation") return `<div ${base}>${imgHolder(outputOf(n), "pic")}</div>`;
+    if (n.type === "text") {
+      const bg = n.data.color && /^#[0-9a-f]{6}$/i.test(n.data.color) ? `;background:${n.data.color}` : "";
+      return `<div ${base.replace(st, st + bg)}><div class="nh"><span class="nt">Prompt</span><span class="nn">${esc(n.name)}</span></div><div class="tx">${esc(cut(textOf(n)) || "")}</div></div>`;
+    }
+    if (n.type === "panel") return `<div ${base}><div class="nh"><span class="nn">${esc(n.data.name || n.name)}</span></div></div>`;
+    if (n.type === "drawing") return `<div ${base}></div>`;
+    return `<div ${base}><div class="nh"><span class="nt">${esc(typeLabel(n.type))}</span><span class="nn">${esc(n.name)}</span></div>
+      <div class="nb"><div class="chips">${settingChips(n)}</div>${imgHolder(outputOf(n), "pic")}</div></div>`;
+  }).join("");
+
+  $("#main").innerHTML = `<div class="viewport" id="vp">
+      <div class="world" id="world">
+        <svg class="wires" style="left:${b.x}px;top:${b.y}px" width="${b.w}" height="${b.h}" viewBox="0 0 ${b.w} ${b.h}">${wires}</svg>
+        ${nodeHtml}
+      </div>
+    </div>
+    <div class="legend"><span><b style="background:var(--violet)"></b>prompt</span><span><b style="background:var(--amber)"></b>immagine</span></div>
+    <div class="zoombar"><button class="btn icon" id="zout" type="button" aria-label="Riduci">−</button><span class="zoomlabel" id="zl"></span><button class="btn icon" id="zin" type="button" aria-label="Ingrandisci">+</button><button class="btn" id="zfit" type="button">Adatta</button></div>`;
+  vp = $("#vp"); world = $("#world");
+  if (fit || !app.camPage || app.camPage !== app.spaceId + app.pageId) fitView(); else applyCam();
+  app.camPage = app.spaceId + app.pageId;
+  wireGestures();
+  $("#zin").onclick = () => zoomAt(1.3); $("#zout").onclick = () => zoomAt(1 / 1.3); $("#zfit").onclick = fitView;
+  observeImages(world, vp);
+}
+function bounds(nodes) {
+  if (!nodes.length) return { x: 0, y: 0, w: 1000, h: 800 };
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of nodes) { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x + n.width); y1 = Math.max(y1, n.y + n.height); }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+function applyCam() {
+  const c = app.cam;
+  world.style.transform = `translate(${c.x}px,${c.y}px) scale(${c.s})`;
+  vp.style.backgroundSize = `${28 * Math.max(.5, Math.min(2, c.s * 2))}px ${28 * Math.max(.5, Math.min(2, c.s * 2))}px`;
+  vp.style.backgroundPosition = `${c.x}px ${c.y}px`;
+  const zl = $("#zl"); if (zl) zl.textContent = Math.round(c.s * 100) + "%";
+}
+const clampS = (s) => Math.min(2.5, Math.max(0.03, s));
+function visibleWidth() { const sheetOpen = !$("#sheet")?.hidden && $("#sheet") && innerWidth > 700; return vp.clientWidth - (sheetOpen ? $("#sheet").offsetWidth : 0); }
+function fitView() {
+  const nodes = pageNodes().filter((n) => n.type !== "drawing");
+  const b = bounds(nodes.length ? nodes : pageNodes());
+  const W = visibleWidth(), H = vp.clientHeight;
+  const s = clampS(Math.min(W / b.w, H / b.h) * 0.9);
+  app.cam = { s, x: (W - b.w * s) / 2 - b.x * s, y: (H - b.h * s) / 2 - b.y * s };
+  applyCam();
+}
+function zoomAt(f, px, py) {
+  const c = app.cam; px ??= visibleWidth() / 2; py ??= vp.clientHeight / 2;
+  const s = clampS(c.s * f); const wx = (px - c.x) / c.s, wy = (py - c.y) / c.s;
+  app.cam = { s, x: px - wx * s, y: py - wy * s }; applyCam();
+}
+function centerOn(id) {
+  const n = app.S?.nodes.get(id); if (!n || !vp) return;
+  const s = Math.max(app.cam.s, 0.45);
+  app.cam = { s, x: visibleWidth() / 2 - (n.x + n.width / 2) * s, y: vp.clientHeight / 2 - (n.y + n.height / 2) * s };
+  applyCam();
+}
+function wireGestures() {
+  const pts = new Map(); let st = null, tap = null, lastTap = 0;
+  const snap = () => {
+    const arr = [...pts.values()];
+    const mid = arr.length > 1 ? { x: (arr[0].x + arr[1].x) / 2, y: (arr[0].y + arr[1].y) / 2 } : arr[0];
+    const d = arr.length > 1 ? Math.hypot(arr[0].x - arr[1].x, arr[0].y - arr[1].y) : 1;
+    st = { cam: { ...app.cam }, mid, d };
+  };
+  const local = (e) => { const r = vp.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  vp.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button > 0) return;
+    pts.set(e.pointerId, local(e));
+    try { vp.setPointerCapture(e.pointerId); } catch {}
+    snap();
+    tap = pts.size === 1 ? { ...local(e), t: Date.now(), node: e.target.closest(".node")?.dataset.id } : null;
+    vp.classList.add("dragging");
+  });
+  vp.addEventListener("pointermove", (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, local(e));
+    const arr = [...pts.values()];
+    if (tap && Math.hypot(arr[0].x - tap.x, arr[0].y - tap.y) > 8) tap = null;
+    if (arr.length === 1) {
+      app.cam = { ...st.cam, x: st.cam.x + arr[0].x - st.mid.x, y: st.cam.y + arr[0].y - st.mid.y };
+    } else {
+      const mid = { x: (arr[0].x + arr[1].x) / 2, y: (arr[0].y + arr[1].y) / 2 };
+      const d = Math.hypot(arr[0].x - arr[1].x, arr[0].y - arr[1].y);
+      const s = clampS(st.cam.s * d / st.d);
+      const wx = (st.mid.x - st.cam.x) / st.cam.s, wy = (st.mid.y - st.cam.y) / st.cam.s;
+      app.cam = { s, x: mid.x - wx * s, y: mid.y - wy * s };
+    }
+    applyCam();
+  });
+  const up = (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pts.size) snap(); else vp.classList.remove("dragging");
+    if (tap && !pts.size && Date.now() - tap.t < 400) {
+      if (tap.node) select(tap.node, true);
+      else if (Date.now() - lastTap < 320) fitView();
+      else if (!$("#sheet")?.hidden) closeSheet();
+      lastTap = Date.now();
+    }
+    tap = null;
+  };
+  vp.addEventListener("pointerup", up);
+  vp.addEventListener("pointercancel", up);
+  vp.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const p = local(e);
+    if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), p.x, p.y);
+    else { app.cam.x -= e.deltaX; app.cam.y -= e.deltaY; applyCam(); }
+  }, { passive: false });
+  // gesti Safari (trackpad/tastiera iPad)
+  let gs = 1;
+  vp.addEventListener("gesturestart", (e) => { e.preventDefault(); gs = 1; });
+  vp.addEventListener("gesturechange", (e) => { e.preventDefault(); zoomAt(e.scale / gs); gs = e.scale; });
+}
+
+/* ---------- pannello dettagli ---------- */
+let sheetToken = 0;
+function closeSheet() { const s = $("#sheet"); if (s) s.remove(); app.selected = null; document.querySelectorAll(".node.sel").forEach((n) => n.classList.remove("sel")); }
+async function select(id, fromCanvas) {
+  const S = app.S; const n = S?.nodes.get(id); if (!n) return;
+  app.selected = id;
+  document.querySelectorAll(".node.sel").forEach((x) => x.classList.remove("sel"));
+  document.querySelector(`.node[data-id="${CSS.escape(id)}"]`)?.classList.add("sel");
+  const token = ++sheetToken;
+  let sheet = $("#sheet");
+  if (!sheet) { sheet = document.createElement("aside"); sheet.className = "sheet"; sheet.id = "sheet"; $("#main").append(sheet); }
+  const ins = inputsOf(S, id), outs = outputsOf(S, id);
+  const settings = Object.entries(n.data).filter(([k, v]) => !HIDDEN_KEYS.has(k) && v !== null && v !== "");
+  const txt = textOf(n);
+  const textKey = n.data.text != null ? "text" : n.data.prompt != null ? "prompt" : (n.type === "text" ? "text" : null);
+  sheet.innerHTML = `
+    <div class="sh">
+      <div class="grow"><div class="label">${esc(typeLabel(n.type))}</div><h3>${esc(n.name)}</h3></div>
+      <button class="btn icon" type="button" id="shClose" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="sb">
+      ${outputOf(n) ? `<div class="big" style="cursor:default" data-cid="${esc(outputOf(n))}" data-hq="medium"><span class="ph">…</span></div>` : ""}
+      ${settings.length ? `<dl>${settings.map(([k, v]) => `<dt>${esc(SETTING_LABEL[k] || k)}</dt><dd>${esc(cut(v))}</dd>`).join("")}</dl>` : ""}
+      ${textKey ? `<div id="textBox" style="display:grid;gap:10px">
+          <div class="label"><span class="sw" style="background:var(--violet)"></span>Testo</div>
+          <pre class="fulltext" id="fullText">${esc(cut(txt) || "")}</pre>
+          <div class="row" id="textActions"><button class="btn" type="button" id="copyText">Copia</button><button class="btn" type="button" id="editText">Modifica</button></div>
+        </div>` : ""}
+      ${ins.length ? `<div class="links"><div class="label">Ingressi</div>${ins.map((c) => linkBtn(c.src, c.targetPort)).join("")}</div>` : ""}
+      ${outs.length ? `<div class="links"><div class="label">Uscite</div>${outs.map((c) => linkBtn(c.dst, c.targetPort)).join("")}</div>` : ""}
+      <div class="row"><a class="btn" target="_blank" rel="noopener" href="${esc(focusUrl(n.id))}">Apri nodo in Magnific</a></div>
+      <p class="note">Questa pagina non avvia generazioni: per lanciarle usa Magnific.</p>
+    </div>`;
+  $("#shClose").onclick = closeSheet;
+  sheet.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => { select(b.dataset.go); if (app.view === "canvas") centerOn(b.dataset.go); });
+  const big = sheet.querySelector(".big[data-cid]"); if (big) fillImage(big, "medium");
+  if (fromCanvas === undefined && app.view === "canvas") centerOn(id);
+
+  if (textKey) {
+    let full = txt;
+    const show = () => { const ft = $("#fullText"); if (ft) ft.textContent = full ?? ""; };
+    $("#copyText").onclick = async () => {
+      try { await navigator.clipboard.writeText(full ?? ""); toast("Testo copiato"); }
+      catch { const r = document.createRange(); r.selectNodeContents($("#fullText")); getSelection().removeAllRanges(); getSelection().addRange(r); }
+    };
+    $("#editText").onclick = () => startEdit(n, textKey, full ?? "");
+    if (isTrunc(txt)) {
+      $("#fullText").textContent = (cut(txt) || "") + "\n\nCarico il testo completo…";
+      $("#editText").disabled = true;
+      try {
+        const d = await call("spaces_get_nodes", { spaceId: app.spaceId, nodeIds: [id] }, { cache: { staleTime: 15_000, gcTime: WEEK } });
+        if (token !== sheetToken) return;
+        const row = (d.nodeData || []).find((r) => r.elementId === id && r.key === textKey);
+        full = row ? row.value : txt; n.data[textKey] = full; show();
+        $("#editText").disabled = false;
+      } catch (e) {
+        if (token !== sheetToken) return;
+        $("#fullText").textContent = (cut(txt) || "") + "\n\n(Testo completo non disponibile: " + (e.message || e.code) + ")";
+      }
+    }
+  }
+}
+function linkBtn(otherId, port) {
+  const o = app.S.nodes.get(otherId); if (!o) return "";
+  return `<button type="button" data-go="${esc(o.id)}"><span>${esc(o.name)}</span><small>${esc(typeLabel(o.type))}${port ? " · " + esc(port) : ""}</small></button>`;
+}
+function startEdit(n, key, current) {
+  const box = $("#textBox");
+  box.innerHTML = `<div class="label"><span class="sw" style="background:var(--violet)"></span>Modifica testo</div>
+    <textarea class="edit" id="editArea" spellcheck="true"></textarea>
+    <div class="row" id="editRow"><button class="btn primary" type="button" id="saveText">Salva nel nodo</button><button class="btn" type="button" id="cancelText">Annulla</button></div>`;
+  const ta = $("#editArea"); ta.value = current;
+  const draftKey = "draft." + n.id; const draft = store.get(draftKey, null);
+  if (draft && draft !== current) { ta.value = draft; toast("Ripristinata la bozza non salvata"); }
+  ta.addEventListener("input", () => store.set(draftKey, ta.value));
+  ta.focus();
+  $("#cancelText").onclick = () => { store.set(draftKey, null); select(n.id, true); };
+  $("#saveText").onclick = () => {
+    if (ta.value === current) { toast("Nessuna modifica da salvare"); return; }
+    const row = $("#editRow");
+    row.outerHTML = `<div class="confirm" id="confirmBox"><span>Il testo del nodo «${esc(n.name)}» in Magnific verrà sostituito. Nessuna generazione verrà avviata.</span>
+      <div class="row"><button class="btn primary" type="button" id="doSave">Sostituisci</button><button class="btn" type="button" id="noSave">Indietro</button></div></div>`;
+    $("#noSave").onclick = () => startEdit(n, key, current);
+    $("#doSave").onclick = async () => {
+      const b = $("#doSave"); b.disabled = true; b.textContent = "Salvo…";
+      try {
+        await mcp.callTool(SERVER, "spaces_patch_node", { spaceId: app.spaceId, patches: [{ nodeId: n.id, pageId: n.pageId, patch: { data: { [key]: ta.value } } }] });
+        n.data[key] = ta.value; store.set(draftKey, null);
+        try { await mcp.invalidate(SERVER, "spaces_state"); await mcp.invalidate(SERVER, "spaces_get_nodes"); } catch {}
+        toast("Testo salvato in Magnific");
+        renderSpace(false); select(n.id, true);
+      } catch (e) {
+        b.disabled = false; b.textContent = "Sostituisci";
+        const msg = e?.code === "server_unavailable" || e?.code === "upstream_error"
+          ? "Non so se il salvataggio è andato a buon fine: aggiorna lo Space prima di riprovare."
+          : "Salvataggio non riuscito: " + (e?.message || e?.code);
+        toast(msg, true);
+      }
+    };
+  };
+}
+
+/* ---------- avvio ---------- */
+(async function boot() {
+  barList();
+  $("#main").innerHTML = loading("Collego Magnific…");
+  try { mcp = window.claude && window.claude.use ? await window.claude.use("mcp") : null; } catch { mcp = null; }
+  if (!mcp) {
+    $("#main").innerHTML = `<div class="state"><div><h2>Apri questa pagina in claude.ai</h2><p>Pedro Spaces legge i tuoi Spaces tramite il connettore Magnific del tuo account, che è disponibile solo quando la pagina è aperta in claude.ai o nell'app Claude.</p></div></div>`;
+    return;
+  }
+  route();
+})();
+addEventListener("resize", () => { if (app.view === "canvas" && vp && app.S) applyCam(); });
+</script>
